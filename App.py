@@ -75,6 +75,7 @@ with st.form("entry_form", clear_on_submit=True):
             "🍜 ค่าอาหาร/เครื่องดื่ม",
             "🚗 เดินทาง",
             "🛍️ ช้อปปิ้ง/ของใช้",
+            "💰 เงินสำรองจ่ายบริษัท",
             "🐷 เงินเก็บส่วนกลาง",
             "🏫 ค่าเรียนลูก",
             "📝 อื่นๆ"
@@ -84,6 +85,7 @@ with st.form("entry_form", clear_on_submit=True):
             "💼 เงินเดือน",
             "🎁 โบนัส/เงินพิเศษ",
             "💸 คืนเงิน/Cashback",
+            "💰 เงินคืนสำรองจ่ายจากบริษัท",
             "📝 อื่นๆ"
         ]
         
@@ -116,7 +118,7 @@ with st.form("entry_form", clear_on_submit=True):
             placeholder="แตะเพื่อระบุยอดเงิน..."
         )
     
-    channel_options = ["💳 Credit Card", "🦅 KTB", "🟢 K-BANK", "🟣 SCB", " 💵 เงินสด ", "📝อื่นๆ"]
+    channel_options = ["💵 เงินสด", "🟢 K-BANK", "💳 Credit Card", "🟣 SCB", "🦅 Bangkok-BANK", "📝อื่นๆ"]
     channel = st.radio("🏦 ช่องทาง", channel_options, horizontal=True)
     
     note = st.text_input("📝 หมายเหตุ (ถ้ามี)")
@@ -178,7 +180,6 @@ if not df.empty:
             fig_pie.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
             st.plotly_chart(fig_pie, use_container_width=True)
 
-            # 💡 แก้ไขบั๊กกราฟเส้นตรงนี้ค่ะ
             st.markdown("##### 📈 ยอดใช้จ่ายรายวัน")
             exp_only = filtered_df[filtered_df['รายจ่าย'] > 0].copy()
             if not exp_only.empty:
@@ -225,6 +226,20 @@ if not df.empty:
         </div>
         """, unsafe_allow_html=True)
 
+        # 💡 เพิ่มส่วนแสดงยอดค้างจ่ายตรงนี้ค่ะ
+        advance_company = filtered_df[filtered_df['รายการ'] == ' เงินสำรองจ่ายบริษัท']['รายจ่าย'].sum()
+        refund_company = filtered_df[filtered_df['รายการ'] == ' เงินคืนสำรองจ่ายจากบริษัท']['รายรับ'].sum()
+        remain_advance = advance_company - refund_company
+
+        st.markdown(f"""
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 5px solid #64748b; padding: 15px; border-radius: 10px; margin-top: 10px; margin-bottom: 20px;">
+            <p style="margin:0; color: #475569; font-size: 16px;">💳 เงินสำรองจ่ายบริษัท</p>
+            <h3 style="margin:0; color: #0f172a;">ยอดสำรองจ่าย: ฿ {advance_company:,.2f}</h3>
+            <h3 style="margin:0; color: #0f172a;">ยอดคืนเงิน: ฿ {refund_company:,.2f}</h3>
+            <h3 style="margin:0; color: #b91c1c;">ยอดค้างจ่ายจากบริษัท: ฿ {remain_advance:,.2f}</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
         st.markdown("#### 🏆 วิเคราะห์หมวดหมู่การใช้จ่าย")
         expense_df = filtered_df[filtered_df['รายจ่าย'] > 0]
         
@@ -246,8 +261,3 @@ if not df.empty:
             st.dataframe(filtered_df[cols_to_show].sort_values(by='วันที่', ascending=False), use_container_width=True)
 else:
     st.info("ยังไม่มีข้อมูลเลยค่ะ เจ้านายลองบันทึกรายการแรกดูนะคะ!")
-
-
-
-
-
