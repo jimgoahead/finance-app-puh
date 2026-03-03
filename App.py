@@ -3,29 +3,26 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 import plotly.express as px
-import json # 💡 เพิ่มตัวช่วยจัดการกุญแจบน Cloud
+import json 
 
 # ==========================================
-# ส่วนตั้งค่าการเชื่อมต่อ Google Sheets (รองรับ Cloud & Local)
+# ส่วนตั้งค่าการเชื่อมต่อ Google Sheets
 # ==========================================
 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
 @st.cache_resource
 def init_connection():
-    # ตรวจสอบว่ามีข้อมูลกุญแจซ่อนอยู่ในระบบ Cloud ไหม
     if "google_credentials" in st.secrets:
-        # ถ้ารันบน Cloud ให้ดึงกุญแจจาก Streamlit Secrets
         creds_dict = json.loads(st.secrets["google_credentials"])
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     else:
-        # ถ้ารันบนคอมบ้าน ให้ใช้ไฟล์ .json ปกติ
         creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
         
     client = gspread.authorize(creds)
     return client
 
 client = init_connection()
-SHEET_NAME = "Finance App" 
+SHEET_NAME = "Finance App Puh" 
 sheet = client.open(SHEET_NAME).sheet1
 
 def load_data():
@@ -62,64 +59,89 @@ df = load_data()
 # ==========================================
 st.markdown("### 📝 บันทึกรายการใหม่")
 
+# สวิตช์เปิด-ปิด โหมดต่างประเทศ
+tourist_mode = st.toggle("✈️ โหมดนักท่องเที่ยว (แยกกระเป๋าทริป)")
+
 type_ = st.radio("🔄 ประเภทรายการ", ["รายจ่าย 🔴", "รายรับ 🟢"], horizontal=True)
 
 with st.form("entry_form", clear_on_submit=True):
     date = st.date_input("📅 วันที่")
     
+    if tourist_mode:
+        trip_name = st.text_input("🏷️ ชื่อทริป (เช่น Japan 2026)", value="Japan 2026")
+    
     if "รายจ่าย" in type_:
         category_options = [
-            "🍜 ค่าอาหาร/เครื่องดื่ม", 
-            "🛍️ ช้อปปิ้ง/ของใช้", 
-            "⚡ ค่าน้ำ/ค่าไฟ", 
-            "📱 ค่า Net/Streaming", 
-            "🧺 ค่าซักผ้า",          
-            "🐷 เงินเก็บส่วนกลาง", 
-            "🏫 ค่าเรียนลูก", 
-            "🎌 เงินเก็บค่าเที่ยวญี่ปุ่น", 
-            "🚗 เดินทาง/เติมน้ำมัน", 
+            "🍜 ค่าอาหาร/เครื่องดื่ม",
+            "🚗 เดินทาง",
+            "🛍️ ช้อปปิ้ง/ของใช้",
+            "🐷 เงินเก็บส่วนกลาง",
+            "🏫 ค่าเรียนลูก",
             "📝 อื่นๆ"
         ]
     else:
         category_options = [
-            "💼 เงินเดือน", 
-            "👫 ค่าส่วนกลางจากปุ๊", 
-            "🎁 โบนัส/เงินพิเศษ", 
-            "💸 คืนเงิน/Cashback", 
-            "📈 ดอกเบี้ย/ปันผล", 
+            "💼 เงินเดือน",
+            "🎁 โบนัส/เงินพิเศษ",
+            "💸 คืนเงิน/Cashback",
             "📝 อื่นๆ"
         ]
         
     category = st.selectbox("🏷️ หมวดหมู่", category_options)
     
-    amount = st.number_input("💰 จำนวนเงิน (บาท)", min_value=0.0, format="%.2f", step=100.0)
+    if tourist_mode:
+        st.markdown("🎌 **ข้อมูลสกุลเงินต่างประเทศ**")
+        col_curr, col_rate = st.columns(2)
+        with col_curr:
+            currency = st.selectbox("สกุลเงิน", ["JPY (เยน)", "USD (ดอลลาร์)"])
+        with col_rate:
+            exchange_rate = st.number_input("เรทแลกเปลี่ยน", value=None, format="%.4f", step=0.0100, placeholder="ระบุเรท...")
+        
+        curr_symbol = currency.split(' ')[0]
+        amount_input = st.number_input(
+            f"💰 จำนวนเงิน ({curr_symbol})", 
+            min_value=0.0, 
+            format="%.2f", 
+            step=100.0, 
+            value=None, 
+            placeholder=f"แตะระบุยอด {curr_symbol}..."
+        )
+    else:
+        amount_input = st.number_input(
+            "💰 จำนวนเงิน (บาท)", 
+            min_value=0.0, 
+            format="%.2f", 
+            step=100.0, 
+            value=None, 
+            placeholder="แตะเพื่อระบุยอดเงิน..."
+        )
     
-    if amount > 0:
-        st.markdown(f"<span style='color:#4CAF50; font-size:18px;'>✨ ยอดเงินที่ระบุ: <b>{amount:,.2f}</b> บาท</span>", unsafe_allow_html=True)
-    
-    channel_options = ["💳 Credit Card", "🦅 KTB", "🟢 K-BANK", "🟣 SCB", "💵 เงินสด", "📝 อื่นๆ"]
+    channel_options = ["💳 Credit Card", "🦅 KTB", "🟢 K-BANK", "🟣 SCB", " 💵 เงินสด ", "📝อื่นๆ"]
     channel = st.radio("🏦 ช่องทาง", channel_options, horizontal=True)
     
     note = st.text_input("📝 หมายเหตุ (ถ้ามี)")
 
-    submitted = st.form_submit_button("บันทึกข้อมูลเลย!")
-    
-    if submitted:
-        if amount <= 0:
-            st.warning("⚠️ เจ้านายอย่าลืมใส่จำนวนเงินให้ถูกต้องนะคะ!")
+    if st.form_submit_button("บันทึกข้อมูลลงตาราง"):
+        if amount_input is None or amount_input <= 0:
+            st.error("⚠️ เจ้านายอย่าลืมใส่จำนวนเงินนะคะ!")
+        elif tourist_mode and (exchange_rate is None or exchange_rate <= 0):
+            st.error("⚠️ เจ้านายอย่าลืมระบุเรทแลกเปลี่ยนนะคะ!")
         else:
+            if tourist_mode:
+                final_thb_amount = amount_input * exchange_rate
+                curr_symbol = currency.split(' ')[0]
+                final_note = f"#{trip_name} [{curr_symbol} {amount_input:,.2f} @{exchange_rate}] {note}".strip()
+            else:
+                final_thb_amount = amount_input
+                final_note = note
+
             all_values = sheet.get_all_values()
-            next_id = len(all_values) if len(all_values) > 1 else 1
+            next_id = len(all_values)
+            income_amt = final_thb_amount if "รายรับ" in type_ else ""
+            expense_amt = final_thb_amount if "รายจ่าย" in type_ else ""
             
-            income_amt = amount if "รายรับ" in type_ else ""
-            expense_amt = amount if "รายจ่าย" in type_ else ""
-            
-            date_str = date.strftime("%Y-%m-%d")
-            
-            new_row = [next_id, date_str, category, income_amt, expense_amt, channel, note]
-            sheet.append_row(new_row)
-            
-            st.success(f"✨ เจนนี่บันทึกยอด {amount:,.2f} บาท สำเร็จแล้วค่ะ!")
+            sheet.append_row([next_id, date.strftime("%Y-%m-%d"), category, income_amt, expense_amt, channel, final_note])
+            st.success(f"✅ บันทึกยอด {final_thb_amount:,.2f} บาท สำเร็จแล้วค่ะ!")
             st.rerun()
 
 st.markdown("---")
@@ -135,49 +157,97 @@ if not df.empty:
     df['วันที่'] = pd.to_datetime(df['วันที่'])
     df['เดือน-ปี'] = df['วันที่'].dt.strftime('%Y-%m')
     
-    months_list = ["ดูทั้งหมด"] + sorted(df['เดือน-ปี'].unique().tolist(), reverse=True)
-    selected_month = st.selectbox("📅 เลือกเดือนที่ต้องการดูข้อมูล:", months_list)
-    
-    if selected_month != "ดูทั้งหมด":
-        filtered_df = df[df['เดือน-ปี'] == selected_month]
+    if tourist_mode:
+        # ✈️ โหมดทริป
+        df['หมายเหตุ'] = df['หมายเหตุ'].fillna('')
+        
+        st.markdown("#### ✈️ สรุปค่าใช้จ่ายแยกตามทริป")
+        trip_search = st.text_input("พิมพ์ชื่อทริปที่ต้องการดู (เช่น Japan 2026):", value="Japan 2026")
+        
+        filtered_df = df[df['หมายเหตุ'].str.contains(f"#{trip_search}", na=False)]
+        
+        if not filtered_df.empty:
+            total_trip_expense = filtered_df['รายจ่าย'].sum()
+            
+            st.error(f"**รายจ่ายรวมทริป '{trip_search}':**\n## ฿ {total_trip_expense:,.2f}")
+            
+            st.markdown("##### 🍩 สัดส่วนค่าใช้จ่ายในทริปนี้")
+            cat_expense = filtered_df[filtered_df['รายจ่าย'] > 0].groupby('รายการ', as_index=False)['รายจ่าย'].sum()
+            fig_pie = px.pie(cat_expense, values='รายจ่าย', names='รายการ', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_pie.update_traces(textposition='inside', textinfo='percent+label', insidetextorientation='horizontal')
+            fig_pie.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+            # 💡 แก้ไขบั๊กกราฟเส้นตรงนี้ค่ะ
+            st.markdown("##### 📈 ยอดใช้จ่ายรายวัน")
+            exp_only = filtered_df[filtered_df['รายจ่าย'] > 0].copy()
+            if not exp_only.empty:
+                exp_only['วันที่_format'] = exp_only['วันที่'].dt.strftime('%Y-%m-%d')
+                daily_expense = exp_only.groupby('วันที่_format', as_index=False)['รายจ่าย'].sum()
+                
+                fig_line = px.line(daily_expense, x='วันที่_format', y='รายจ่าย', markers=True, text='รายจ่าย')
+                fig_line.update_traces(textposition="top center", texttemplate='%{text:,.0f}')
+                fig_line.update_layout(margin=dict(t=10, b=10, l=10, r=10), xaxis_title="วันที่", yaxis_title="ยอดเงิน (บาท)")
+                st.plotly_chart(fig_line, use_container_width=True)
+            else:
+                st.info("ยังไม่มีข้อมูลรายจ่ายสำหรับสร้างกราฟค่ะ")
+
+            with st.expander("เปิดดูรายการทั้งหมดของทริปนี้"):
+                cols_to_show = ['วันที่', 'รายการ', 'รายจ่าย', 'ช่องทาง', 'หมายเหตุ']
+                st.dataframe(filtered_df[cols_to_show].sort_values(by='วันที่', ascending=False), use_container_width=True)
+        else:
+            st.info(f"ยังไม่มีข้อมูลบันทึกสำหรับทริป '{trip_search}' ค่ะ")
+
     else:
-        filtered_df = df
-
-    total_income = filtered_df['รายรับ'].sum()
-    total_expense = filtered_df['รายจ่าย'].sum()
-    balance = total_income - total_expense
-
-    col1, col2 = st.columns(2)
-    col1.success(f"**รายรับรวม:**\n### ฿ {total_income:,.2f}")
-    col2.error(f"**รายจ่ายรวม:**\n### ฿ {total_expense:,.2f}")
-    st.info(f"**ยอดคงเหลือ:**\n## ฿ {balance:,.2f}")
-
-    st.markdown("#### 🏆 วิเคราะห์หมวดหมู่การใช้จ่าย")
-    
-    expense_df = filtered_df[filtered_df['รายจ่าย'] > 0]
-    
-    if not expense_df.empty:
-        cat_expense = expense_df.groupby('รายการ', as_index=False)['รายจ่าย'].sum().sort_values(by='รายจ่าย', ascending=False)
+        # 📅 โหมดรายเดือนปกติ
+        months_list = ["ดูทั้งหมด"] + sorted(df['เดือน-ปี'].unique().tolist(), reverse=True)
+        selected_month = st.selectbox("📅 เลือกเดือนที่ต้องการดูข้อมูล:", months_list)
         
-        top_cat = cat_expense.iloc[0]['รายการ']
-        top_amt = cat_expense.iloc[0]['รายจ่าย']
-        st.warning(f"🥇 **จ่ายหนักสุดในหมวด:** {top_cat} (฿ {top_amt:,.2f})")
-        
-        fig = px.pie(
-            cat_expense, 
-            values='รายจ่าย', 
-            names='รายการ', 
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
-        )
-        fig.update_traces(textposition='inside', textinfo='percent+label', insidetextorientation='horizontal')
-        fig.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
-        
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.write("ยังไม่มีรายจ่ายในเดือนนี้ค่ะ")
+        if selected_month != "ดูทั้งหมด":
+            filtered_df = df[df['เดือน-ปี'] == selected_month]
+        else:
+            filtered_df = df
 
-    with st.expander("เปิดดูประวัติรายการทั้งหมด"):
-        st.dataframe(filtered_df[['วันที่', 'รายการ', 'รายรับ', 'รายจ่าย', 'ช่องทาง', 'หมายเหตุ']].sort_values(by='วันที่', ascending=False), use_container_width=True)
+        total_income = filtered_df['รายรับ'].sum()
+        total_expense = filtered_df['รายจ่าย'].sum()
+        balance = total_income - total_expense
+
+        col1, col2 = st.columns(2)
+        col1.success(f"**รายรับรวม:**\n### ฿ {total_income:,.2f}")
+        col2.error(f"**รายจ่ายรวม:**\n### ฿ {total_expense:,.2f}")
+        st.info(f"**ยอดคงเหลือ:**\n## ฿ {balance:,.2f}")
+
+        cc_expense = filtered_df[filtered_df['ช่องทาง'] == '💳 Credit Card']['รายจ่าย'].sum()
+        st.markdown(f"""
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 5px solid #64748b; padding: 15px; border-radius: 10px; margin-top: 10px; margin-bottom: 20px;">
+            <p style="margin:0; color: #475569; font-size: 16px;">💳 ยอดบัตรเครดิต (รูดเดือนนี้-อยู่ในรายจ่ายรวมแล้ว)</p>
+            <h3 style="margin:0; color: #0f172a;">฿ {cc_expense:,.2f}</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### 🏆 วิเคราะห์หมวดหมู่การใช้จ่าย")
+        expense_df = filtered_df[filtered_df['รายจ่าย'] > 0]
+        
+        if not expense_df.empty:
+            cat_expense = expense_df.groupby('รายการ', as_index=False)['รายจ่าย'].sum().sort_values(by='รายจ่าย', ascending=False)
+            top_cat = cat_expense.iloc[0]['รายการ']
+            top_amt = cat_expense.iloc[0]['รายจ่าย']
+            st.warning(f"🥇 **จ่ายหนักสุดในหมวด:** {top_cat} (฿ {top_amt:,.2f})")
+            
+            fig = px.pie(cat_expense, values='รายจ่าย', names='รายการ', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig.update_traces(textposition='inside', textinfo='percent+label', insidetextorientation='horizontal')
+            fig.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.write("ยังไม่มีรายจ่ายในเดือนนี้ค่ะ")
+
+        with st.expander("เปิดดูประวัติรายการทั้งหมด"):
+            cols_to_show = ['วันที่', 'รายการ', 'รายรับ', 'รายจ่าย', 'ช่องทาง', 'หมายเหตุ']
+            st.dataframe(filtered_df[cols_to_show].sort_values(by='วันที่', ascending=False), use_container_width=True)
 else:
     st.info("ยังไม่มีข้อมูลเลยค่ะ เจ้านายลองบันทึกรายการแรกดูนะคะ!")
+
+
+
+
+
