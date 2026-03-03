@@ -226,14 +226,14 @@ if not df.empty:
         </div>
         """, unsafe_allow_html=True)
 
-        # 💡 เพิ่มส่วนแสดงยอดค้างจ่ายตรงนี้ค่ะ
-        advance_company = filtered_df[filtered_df['รายการ'] == ' เงินสำรองจ่ายบริษัท']['รายจ่าย'].sum()
-        refund_company = filtered_df[filtered_df['รายการ'] == ' เงินคืนสำรองจ่ายจากบริษัท']['รายรับ'].sum()
+        # 💡 คำนวณยอดเงินสำรองจ่ายจาก filtered_df โดยตรง (แก้ไขแล้ว)
+        advance_company = filtered_df[filtered_df['รายการ'] == '💰 เงินสำรองจ่ายบริษัท']['รายจ่าย'].sum()
+        refund_company = filtered_df[filtered_df['รายการ'] == '💰 เงินคืนสำรองจ่ายจากบริษัท']['รายรับ'].sum()
         remain_advance = advance_company - refund_company
 
         st.markdown(f"""
         <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 5px solid #64748b; padding: 15px; border-radius: 10px; margin-top: 10px; margin-bottom: 20px;">
-            <p style="margin:0; color: #475569; font-size: 16px;">💳 เงินสำรองจ่ายบริษัท</p>
+            <p style="margin:0; color: #475569; font-size: 16px;">🏢 เงินสำรองจ่ายบริษัท</p>
             <h3 style="margin:0; color: #0f172a;">ยอดสำรองจ่าย: ฿ {advance_company:,.2f}</h3>
             <h3 style="margin:0; color: #0f172a;">ยอดคืนเงิน: ฿ {refund_company:,.2f}</h3>
             <h3 style="margin:0; color: #b91c1c;">ยอดค้างจ่ายจากบริษัท: ฿ {remain_advance:,.2f}</h3>
