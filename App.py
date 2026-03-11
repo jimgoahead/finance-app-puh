@@ -92,7 +92,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💸 แอปรายรับ-รายจ่าย ประจำวัน (Puh)")
+st.title("💸 แอปรายรับ-รายจ่าย(Puh)")
 
 df = load_data()
 
@@ -116,7 +116,7 @@ def clear_voice_text():
     st.session_state.pre_chan = "💵 เงินสด"
     st.session_state.form_reset += 1 
 
-st.markdown("### 🎙️ สั่งงานด้วยเสียง (Magic Input)")
+st.markdown("### <span style='color: #00BFFF;'>🎙️ บันทึกด้วยเสียง</span>", unsafe_allow_html=True)
 st.info("💡 **วิธีใช้:** แตะช่องสีฟ้า กดไมค์ที่คีย์บอร์ดมือถือเพื่อพูด แล้วกดปุ่ม ✨ แยกคำ")
 
 voice_input = st.text_input("ข้อความเสียง:", key="voice_input_key", placeholder="แตะที่นี่แล้วพูด... เช่น: ค่าอาหาร 150 บาท จ่ายด้วย Kbank")
@@ -189,7 +189,7 @@ st.markdown("---")
 # ==========================================
 # ส่วนที่ 2: ฟอร์มตรวจสอบและบันทึก
 # ==========================================
-st.markdown("### 📝 ตรวจสอบและบันทึกรายการ")
+st.markdown("### <span style='color: #00BFFF;'>📝 ตรวจสอบและบันทึกรายการ</span>", unsafe_allow_html=True)
 
 default_tourist = False
 default_trip_name = "Japan 2026"
@@ -325,7 +325,7 @@ st.markdown("---")
 # ==========================================
 # ส่วนที่ 3: Dashboard & Cashflow Tabs
 # ==========================================
-st.markdown("### 📊 Dashboard วิเคราะห์ข้อมูล")
+st.markdown("### <span style='color: #00BFFF;'>📊 Dashboard วิเคราะห์ข้อมูล</span>", unsafe_allow_html=True)
 
 # 💡 ลอจิกใหม่: แสดงสวิตช์เฉพาะตอนอยู่โหมดนักท่องเที่ยวเท่านั้น
 if tourist_mode:
@@ -414,7 +414,7 @@ if show_dashboard:
                 </div>
                 """, unsafe_allow_html=True)
 
-                st.markdown("#### 🏆 วิเคราะห์หมวดหมู่การใช้จ่าย")
+                st.markdown("### <span style='color: #E3D27B;'>🏆 วิเคราะห์หมวดหมู่การใช้จ่าย</span>", unsafe_allow_html=True)
                 expense_df = f_df[f_df['รายจ่าย'] > 0]
                 if not expense_df.empty:
                     cat_expense = expense_df.groupby('รายการ', as_index=False)['รายจ่าย'].sum().sort_values(by='รายจ่าย', ascending=False)
@@ -439,7 +439,7 @@ if show_dashboard:
                     cc_inst_bill = actual_cc_bill_df[actual_cc_bill_df['ประเภทการจ่าย'] == 'ผ่อนชำระ']['รายจ่าย'].sum()
                     actual_cc_bill = cc_full_bill + cc_inst_bill
                     real_cashflow = true_cash - actual_cc_bill
-                    st.markdown(f"#### 💵 กระแสเงินสดสุทธิ (Cashflow) ประจำเดือน {sel_m}")
+                    st.markdown(f"#### <span style='color: #63CF86;'>💵 เงินสดที่แท้จริง {sel_m}</span>", unsafe_allow_html=True)    
                     st.info(f"**💰 เงินสดที่แท้จริงในมือ (ก่อนจ่ายบัตร):**\n## ฿ {true_cash:,.2f}\n*(ยอดคงเหลือทางบัญชี ฿{balance:,.2f} + เงินสดที่ยังไม่ออกเพราะรูดบัตร ฿{cc_expense_this_m:,.2f})*")
                     st.markdown(f"""
                     <div style="background-color: #fff1f2; border: 1px solid #fda4af; border-left: 5px solid #e11d48; padding: 15px; border-radius: 10px; margin-bottom: 15px; margin-top: 15px;">
@@ -457,3 +457,4 @@ if show_dashboard:
         st.info("ยังไม่มีข้อมูลเลยค่ะ ลองบันทึกรายการแรกดูนะคะ!")
 else:
     st.caption("ℹ️ Dashboard ถูกซ่อนไว้เพื่อความรวดเร็วและประหยัดอินเทอร์เน็ตค่ะ")
+
